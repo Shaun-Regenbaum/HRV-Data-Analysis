@@ -1,11 +1,14 @@
 import pandas as pd
+import numpy as np
 
 # Global Data
 DF1 = pd.read_csv(
-    './HRV-Data-Analysis/Normal Data.csv', sep=',')
+    'Normal Data.csv', sep=',')
 DF2 = pd.read_csv(
-    './HRV-Data-Analysis/Arrythmic Data.csv', sep=',')
+    'Arrythmic Data.csv', sep=',')
 SECONDS = 60
+
+# Processing functions
 
 
 def get_beats_from_patient(df, column_name):
@@ -29,19 +32,58 @@ def get_bpm_from_patient(df, column_name):
 
 
 def get_hr_from_df(df):
-    hrs = []
+    heartrates = []
     for i in range(20):
         column_name = "Subject " + str(i+1)
         print(column_name)
-        hrs.append(get_bpm_from_patient(df, column_name))
-    return hrs
+        heartrates.append(get_bpm_from_patient(df, column_name))
+    return heartrates
 
 
-normal = get_hr_from_df(DF1)
-arrythmic = get_hr_from_df(DF2)
+def get_rr_peaks_from_patient(df, column_name):
+    rr_peaks = []
+    boolean = df[column_name].notna()
+    i = 0
+    for item in boolean:
+        if item:
+            rr_peaks.append(df[column_name][2+i])
+            i += 1
+        else:
+            return rr_peaks
+    return rr_peaks
 
-print(normal, arrythmic)
+
+def get_rr_interval_from_patient(df, column_name):
+    peaklist = get_rr_peaks_from_patient(df, column_name)
+    # A neat numpy function to give us the intervals:
+    rr_list = np.diff(peaklist)
+    rr_intervals = np.abs(np.diff(rr_list))
+    return rr_intervals
 
 
-# In order to find the heart rate, we simply need to divide the amount of R-Peaks identified in 60 seconds to get bpm:
-# function derive_bpm(r-peaks, seconds):
+def get_rmssd_from_rr_interval(rr_interval):
+    # A neat numpy function to give us the intervals:
+    diff_nni = np.diff(rr_interval)
+    rmssd = np.sqrt(np.mean(diff_nni ** 2))
+    return rmssd
+
+
+def get_rmssd_from_df(df):
+    rmssd_values = []
+    for i in range(20):
+        column_name = "Subject " + str(i+1)
+        print(column_name)
+        rr_interval = get_rr_interval_from_patient(df, column_name)
+        rmssd_values.append(get_rmssd_from_rr_interval(rr_interval))
+    return rmssd_values
+
+
+# Getting Heart Rates:
+normal_hr = get_hr_from_df(DF1)
+arrythmic_hr = get_hr_from_df(DF2)
+
+normal_rmssd = get_rmssd_from_df(DF1)
+arrythmic_rmssd = get_rmssd_from_df(DF2)
+
+print(normal_rmssd)
+print(arrythmic_rmssd)
