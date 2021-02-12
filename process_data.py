@@ -110,8 +110,8 @@ def graph_for_patient(df, column_name):
     plt.plot(RR_x, RR_y, label="Original", color='blue')
     plt.plot(RR_x_new, RR_y_new, label="Interpolated", color='red')
     plt.legend()
+    plt.savefig(column_name + "_NORMAL.png")
     plt.show()
-    plt.savefig(column_name + ".png")
 
 
 def graph_fft_for_patient(df, column_name):
@@ -139,8 +139,8 @@ def graph_fft_for_patient(df, column_name):
     plt.ylim(0, 50)  # Limit Y axis for visibility
     plt.plot(frq, abs(Y))  # Plot it
     plt.xlabel("Frequencies in Hz")
+    plt.savefig(column_name + "_NORMAL_frequency_spectrum.png")
     plt.show()
-    plt.savefig(column_name + "_frequency_spectrum.png")
 
 
 # To find HF and LF we are gonna have to get a bit more complicated
@@ -259,5 +259,5 @@ def get_lf_and_hf_from_df(df):
 for i in range(20):
     column_name = "Subject " + str(i+1)
 
-    graph_for_patient(DF2, column_name)
-    graph_fft_for_patient(DF2, column_name)
+    graph_for_patient(DF1, column_name)
+    graph_fft_for_patient(DF1, column_name)
