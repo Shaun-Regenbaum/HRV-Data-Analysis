@@ -77,7 +77,7 @@ def get_rr_interval_from_patient(df, column_name):
 # This function finds the rmssd value from the rr-intervals
 def get_rmssd_from_rr_interval(rr_interval):
     # A neat numpy function to give us the intervals:
-    diff_nni = np.diff(rr_interval)
+    diff_nni = np.diff(rr_interval)/1000
     rmssd = np.sqrt(np.mean(diff_nni ** 2))
     return rmssd
 
@@ -106,11 +106,12 @@ def get_raw_and_interpolated_for_patient(df, column_name):
 def graph_for_patient(df, column_name):
     RR_x, RR_y, RR_x_new, RR_y_new = get_raw_and_interpolated_for_patient(
         df, column_name)
-    plt.title("Original and Interpolated Signal")
+    plt.title(column_name + " Original and Interpolated Signal")
     plt.plot(RR_x, RR_y, label="Original", color='blue')
     plt.plot(RR_x_new, RR_y_new, label="Interpolated", color='red')
     plt.legend()
     plt.show()
+    plt.savefig(column_name + ".png")
 
 
 def graph_fft_for_patient(df, column_name):
@@ -132,13 +133,14 @@ def graph_fft_for_patient(df, column_name):
     # print(Y)
 
     # Plot
-    plt.title("Frequency Spectrum of Heart Rate Variability")
+    plt.title(column_name + " Frequency Spectrum of Heart Rate Variability")
     # Limit X axis to frequencies of interest (0-0.6Hz for visibility, we are interested in 0.04-0.5)
     # plt.xlim(0, 0.6)
     plt.ylim(0, 50)  # Limit Y axis for visibility
     plt.plot(frq, abs(Y))  # Plot it
     plt.xlabel("Frequencies in Hz")
     plt.show()
+    plt.savefig(column_name + "_frequency_spectrum.png")
 
 
 # To find HF and LF we are gonna have to get a bit more complicated
@@ -204,7 +206,7 @@ def get_ibi_from_df(df):
         column_name = "Subject " + str(i+1)
         # print(column_name)
         rr_interval = get_rr_interval_from_patient(df, column_name)
-        ibi_values.append(np.mean(rr_interval))
+        ibi_values.append(np.mean(rr_interval/1000))
     return ibi_values
 
 
@@ -221,38 +223,41 @@ def get_lf_and_hf_from_df(df):
     return lf_values, hf_values
 
 
-# Getting Durations:
+# # Getting Durations:
 # normal_duration = get_durations_from_df(DF1)
 # arrythmic_duration = get_durations_from_df(DF2)
-# print(normal_duration)
-# print(arrythmic_duration)
+# print("Normal Durations (s): ", normal_duration)
+# print("Arrhythmic Durations (s): ", arrythmic_duration)
 
-# Getting Heart Rates:
+# # Getting Heart Rates:
 # normal_hr = get_hr_from_df(DF1)
 # arrythmic_hr = get_hr_from_df(DF2)
-# print(normal_hr)
-# print(arrythmic_hr)
+# print("Normal Heartrate (bpm): ", normal_hr)
+# print("Arrhythmic Heartrate (bpm): ", arrythmic_hr)
 
-# Getting IBI:
+# # Getting IBI:
 # normal_ibi = get_ibi_from_df(DF1)
 # arrythmic_ibi = get_ibi_from_df(DF2)
-# print(normal_ibi)
-# print(arrythmic_ibi)
+# print("Normal IBI: ", normal_ibi)
+# print("Arrhythmic IBI: ", arrythmic_ibi)
 
-# Getting Rmssd:
+# # Getting Rmssd:
 # normal_rmssd = get_rmssd_from_df(DF1)
 # arrythmic_rmssd = get_rmssd_from_df(DF2)
-# print(normal_rmssd)
-# print(arrythmic_rmssd)
+# print("Normal RMSSD: ", normal_rmssd)
+# print("Arrhythmic RMSSD: ", arrythmic_rmssd)
 
-# Getting LF and HF:
-normal_LF, normal_HF = get_lf_and_hf_from_df(DF1)
-arrythmic_LF, arrythmic_HF = get_lf_and_hf_from_df(DF2)
-print("Normal LF: ", normal_LF)
-print("Normal HF: ", normal_HF)
-print("Arrythmic LF: ", arrythmic_LF)
-print("Arrythmic HF: ", arrythmic_HF)
+# # Getting LF and HF:
+# normal_LF, normal_HF = get_lf_and_hf_from_df(DF1)
+# arrythmic_LF, arrythmic_HF = get_lf_and_hf_from_df(DF2)
+# print("Normal LF: ", normal_LF)
+# print("Normal HF: ", normal_HF)
+# print("Arrhythmic LF: ", arrythmic_LF)
+# print("Arrhythmic HF: ", arrythmic_HF)
 
 # To Graph:
-graph_for_patient(DF2, "Subject 1")
-graph_fft_for_patient(DF2, "Subject 1")
+for i in range(20):
+    column_name = "Subject " + str(i+1)
+
+    graph_for_patient(DF2, column_name)
+    graph_fft_for_patient(DF2, column_name)
