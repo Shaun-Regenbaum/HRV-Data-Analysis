@@ -82,8 +82,90 @@ def get_rmssd_from_rr_interval(rr_interval):
     return rmssd
 
 
+def get_raw_and_interpolated_for_patient(df, column_name):
+    # First we make an evenly spaced timeline:
+    rr_peaks = get_rr_peaks_from_patient(df, column_name)
+    rr_intervals = get_rr_interval_from_patient(df, column_name)
+
+    # This is our raw data
+    X = rr_peaks[1:]  # We want to remove the first one
+    Y = rr_intervals
+
+    # print(Y)
+    # print(len(X), len(Y))
+
+    # This is our interpolated data
+    X_new = np.linspace(X[0], X[-1], len(X))
+    f = interp1d(X, Y, kind='cubic', fill_value="extrapolate")
+    Y_new = f(X_new)
+
+    return X, Y, X_new, Y_new
+
+
+# For Graphing
+def graph_for_patient(df, column_name):
+    RR_x, RR_y, RR_x_new, RR_y_new = get_raw_and_interpolated_for_patient(
+        df, column_name)
+    plt.title("Original and Interpolated Signal")
+    plt.plot(RR_x, RR_y, label="Original", color='blue')
+    plt.plot(RR_x_new, RR_y_new, label="Interpolated", color='red')
+    plt.legend()
+    plt.show()
+
+
+def graph_fft_for_patient(df, column_name):
+    RR_x, RR_y, RR_x_new, RR_y_new = get_raw_and_interpolated_for_patient(
+        df, column_name)
+
+    n = len(RR_x)
+    # divide the bins into frequency categories
+    frq = np.fft.fftfreq(n, d=60)
+
+    # Get single side of the frequency range
+    frq = frq[range(round(n/2))] * 100
+
+    # Do FFT
+    Y = np.fft.fft(RR_y_new)/n  # Calculate FFT
+    Y = Y[range(round(n/2))]  # Return one side of the FFT
+
+    # print(frq)
+    # print(Y)
+
+    # Plot
+    plt.title("Frequency Spectrum of Heart Rate Variability")
+    # Limit X axis to frequencies of interest (0-0.6Hz for visibility, we are interested in 0.04-0.5)
+    # plt.xlim(0, 0.6)
+    plt.ylim(0, 50)  # Limit Y axis for visibility
+    plt.plot(frq, abs(Y))  # Plot it
+    plt.xlabel("Frequencies in Hz")
+    plt.show()
+
+
+# To find HF and LF we are gonna have to get a bit more complicated
+# Also since Im doing this in python, I wont use the provided Matlab code:
+def get_lh_and_hf_for_patient(df, column_name):
+    RR_x, RR_y, RR_x_new, RR_y_new = get_raw_and_interpolated_for_patient(
+        df, column_name)
+
+    n = len(RR_x)  # Length of the signal
+    # divide the bins into frequency categories
+    frq = np.fft.fftfreq(n, d=60)
+
+    # Get single side of the frequency range
+    frq = frq[range(round(n/2))] * 100
+
+    # Do FFT
+    Y = np.fft.fft(RR_y_new)/n  # Calculate FFT
+    Y = Y[range(round(n/2))]  # Return one side of the FFT
+
+    lf = np.trapz(abs(Y[(frq >= 0.04) & (frq <= 0.15)]))
+    hf = np.trapz(abs(Y[(frq >= 0.16) & (frq <= 0.5)]))
+    return lf, hf
+
 # Iterating Functions
 # This function finds bpm for all patients in a df
+
+
 def get_hr_from_df(df):
     heartrates = []
     for i in range(20):
@@ -126,14 +208,17 @@ def get_ibi_from_df(df):
     return ibi_values
 
 
-# def get_lf_from_df(df):
-#     lf_values = []
-#     for i in range(20):
-#         column_name = "Subject " + str(i+1)
-#         # print(column_name)
-#         rr_interval = get_rr_interval_from_patient(df, column_name)
-#         lf_values.append(np.mean(rr_interval))
-#     return lf_values
+def get_lf_and_hf_from_df(df):
+    lf_values = []
+    hf_values = []
+
+    for i in range(20):
+        column_name = "Subject " + str(i+1)
+        # print(column_name)
+        lf, hf = get_lh_and_hf_for_patient(df, column_name)
+        lf_values.append(lf)
+        hf_values.append(hf)
+    return lf_values, hf_values
 
 
 # Getting Durations:
@@ -160,90 +245,14 @@ def get_ibi_from_df(df):
 # print(normal_rmssd)
 # print(arrythmic_rmssd)
 
+# Getting LF and HF:
+normal_LF, normal_HF = get_lf_and_hf_from_df(DF1)
+arrythmic_LF, arrythmic_HF = get_lf_and_hf_from_df(DF2)
+print("Normal LF: ", normal_LF)
+print("Normal HF: ", normal_HF)
+print("Arrythmic LF: ", arrythmic_LF)
+print("Arrythmic HF: ", arrythmic_HF)
 
-# To find HF and LF we are gonna have to get a bit more complicated
-# Also since Im doing this in python, I wont use the provided Matlab code:
-
-def get_raw_and_interpplated_for_patient(df, column_name):
-    # First we make an evenly spaced timeline:
-    rr_peaks = get_rr_peaks_from_patient(df, column_name)
-    rr_intervals = get_rr_interval_from_patient(df, column_name)
-
-    # This is our raw data
-    X = rr_peaks[1:]  # We want to remove the first one
-    Y = rr_intervals
-
-    # print(Y)
-    # print(len(X), len(Y))
-
-    # This is our interpolated data
-    X_new = np.linspace(X[0], X[-1], len(X))
-    f = interp1d(X, Y, kind='cubic', fill_value="extrapolate")
-    Y_new = f(X_new)
-
-    return X, Y, X_new, Y_new
-
-
-# Just graphing it:
-def graph_for_patient(df, column_name):
-    RR_x, RR_y, RR_x_new, RR_y_new = get_raw_and_interpplated_for_patient(
-        df, column_name)
-    plt.title("Original and Interpolated Signal")
-    plt.plot(RR_x, RR_y, label="Original", color='blue')
-    plt.plot(RR_x_new, RR_y_new, label="Interpolated", color='red')
-    plt.legend()
-    plt.show()
-
-
-def graph_fft_for_patient(df, column_name):
-    RR_x, RR_y, RR_x_new, RR_y_new = get_raw_and_interpplated_for_patient(
-        df, column_name)
-
-    n = len(RR_x)
-    # divide the bins into frequency categories
-    frq = np.fft.fftfreq(n, d=60)
-
-    # Get single side of the frequency range
-    frq = frq[range(round(n/2))] * 100
-
-    # Do FFT
-    Y = np.fft.fft(RR_y_new)/n  # Calculate FFT
-    Y = Y[range(round(n/2))]  # Return one side of the FFT
-
-    print(frq)
-    print(Y)
-
-    # Plot
-    plt.title("Frequency Spectrum of Heart Rate Variability")
-    # Limit X axis to frequencies of interest (0-0.6Hz for visibility, we are interested in 0.04-0.5)
-    # plt.xlim(0, 0.6)
-    plt.ylim(0, 50)  # Limit Y axis for visibility
-    plt.plot(frq, abs(Y))  # Plot it
-    plt.xlabel("Frequencies in Hz")
-    plt.show()
-
-
-def get_lh_and_hf_for_patient(df, column_name):
-    RR_x, RR_y, RR_x_new, RR_y_new = get_raw_and_interpplated_for_patient(
-        df, column_name)
-
-    n = len(RR_x)  # Length of the signal
-    # divide the bins into frequency categories
-    frq = np.fft.fftfreq(n, d=60)
-
-    # Get single side of the frequency range
-    frq = frq[range(round(n/2))] * 100
-
-    # Do FFT
-    Y = np.fft.fft(RR_y_new)/n  # Calculate FFT
-    Y = Y[range(round(n/2))]  # Return one side of the FFT
-
-
-    lf = np.trapz(abs(Y[(frq >= 0.04) & (frq <= 0.15)]))
-    hf = np.trapz(abs(Y[(frq >= 0.16) & (frq <= 0.5)]))
-    return lf, hf
-
-
+# To Graph:
 graph_for_patient(DF2, "Subject 1")
 graph_fft_for_patient(DF2, "Subject 1")
-print(get_lh_and_hf_for_patient(DF2, "Subject 1"))
